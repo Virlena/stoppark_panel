@@ -16,7 +16,7 @@ class Keyboard(object):
                 return
         if layout is None:
             layout = 'digits'
-        cls.keyboard = Popen(['matchbox-keyboard', layout])
+        cls.keyboard = Popen(['matchbox-keyboard', '-g', '80x0', layout])
 
 
 class TouchLineEdit(QLineEdit):
@@ -49,9 +49,9 @@ class TicketInput(QDialog):
         self.ui.ok.setText(_('OK'))
         self.ui.cancel.setText(_('Cancel'))
 
-    @staticmethod
-    def show_keyboard():
+    def show_keyboard(self):
         Keyboard.show('digits')
+        self.ui.bar.setFocus(True)
 
     @property
     def bar(self):
@@ -60,7 +60,7 @@ class TicketInput(QDialog):
     def bar_changed(self, bar):
         bar = str(bar)
         try:
-            assert(len(bar) == 18)
+            assert(len(bar) == Ticket.BAR_LENGTH)
             Ticket.parse_bar(bar)
             self.ui.ok.setEnabled(True)
             self.ui.bar.setStyleSheet('background-color: #bbffbb')

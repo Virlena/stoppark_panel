@@ -223,11 +223,13 @@ class TicketPaymentUndefined(Payment):
 
 
 class Ticket(QObject):
+    BAR_LENGTH = 18
+
     IN = 1
     PAID = 5
     OUT = 15
 
-    EXCESS_INTERVAL = 15 * 60  # seconds
+    EXCESS_INTERVAL = 15 * 60  # seconds, TODO: use LocalDB cache to fetch this value instead of constant
 
     @staticmethod
     def remove(db, bar):
@@ -254,6 +256,10 @@ class Ticket(QObject):
         @param bar: string, barcode from barcode reader
         @return: datetime.datetime, datetime of ticket moving inside
         """
+        if len(bar) != Ticket.BAR_LENGTH:
+            raise ValueError
+        if sum(ord(i) - ord('0') for i in bar[:-2]) & 0xFF != int(bar[-2:]):
+            raise ValueError
         try:
             probable_date = datetime.strptime(str(datetime.now().year) + bar[:10], '%Y%m%d%H%M%S')
             if probable_date > datetime.now():
@@ -279,7 +285,7 @@ class Ticket(QObject):
 
         self.id = fields[1]
         self._bar = fields[2]
-        self.tariff_type = fields[3]
+        self.tariff_type = int(fields[3]) if fields[3] != 'None' else None
         self.tariff_price = fields[4]
         self.tariff_sum = fields[5]
         self.tariff_sum_excess = fields[6]
@@ -292,9 +298,13 @@ class Ticket(QObject):
     def __del__(self):
         print '~Ticket'
 
-    @pyqtProperty(str)
+    @pyqtProperty(str, constant=True)
     def bar(self):
         return self._bar
+
+    @pyqtProperty(int, constant=True)
+    def tariff(self):
+        return self.tariff_type
 
     @pyqtSlot(QObject, result=QObject)
     def pay(self, tariff):
